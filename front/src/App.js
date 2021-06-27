@@ -1,24 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { gql, useQuery, useLazyQuery } from '@apollo/client'
+import { useLazyQuery, useMutation } from '@apollo/client'
 import UserForm from './components/UserForm/UserForm'
 import CarForm from './components/CarForm/CarForm'
-
-const SEARCH_DATA = gql`
-    query getData($search:String) {
-        filterUsers(search: $search) {
-            id,
-            name,
-            age,
-            likes
-        },
-        filterCars(search: $search) {
-            id,
-            name,
-            year,
-            condition
-        }
-    }
-`
+import { SEARCH_DATA_QUERY } from './service/queries'
+import { UPDATE_USER_QUERY, UPDATE_CAR_QUERY, SAVE_USER_QUERY, SAVE_CAR_QUERY, DELETE_USER_QUERY, DELETE_CAR_QUERY } from './service/mutations'
 
 const defaultUserForm = { id: null, name: '', age: '', likes: '' }
 const defaultCarForm = { id: null, name: '', year: '', condition: '' }
@@ -28,24 +13,41 @@ const App = () => {
     const [carForm, setCarForm] = useState(defaultCarForm)
     const [search, setSeach] = useState('')
 
-    const [ getAllDataLazy,  searchAllData ] = useLazyQuery(SEARCH_DATA, { variables: { search } })
+    const [searchAllDataLazy,  searchAllDataResponse] = useLazyQuery(SEARCH_DATA_QUERY, { variables: { search } })
+    const [updateUserData] = useMutation(UPDATE_USER_QUERY)
+    const [updateCarData] = useMutation(UPDATE_CAR_QUERY)
+    const [saveUserData] = useMutation(SAVE_USER_QUERY, { onCompleted: searchAllDataResponse?.refetch})
+    const [saveCarData] = useMutation(SAVE_CAR_QUERY, { onCompleted: searchAllDataResponse?.refetch})
+    const [deleteUserData] = useMutation(DELETE_USER_QUERY, { onCompleted: searchAllDataResponse?.refetch})
+    const [deleteCarData] = useMutation(DELETE_CAR_QUERY, { onCompleted: searchAllDataResponse?.refetch})
+
 
     useEffect(() => {
-        getAllDataLazy()
-    }, [search])
+        searchAllDataLazy()
+    }, [search, searchAllDataLazy])
 
-    const handleSaveUser = () => {
-
+    const handleUpdateUser = (updatedUserData) => {
+        updateUserData({ variables: updatedUserData })
     }
-    const handleSaveCar = () => {
-
+    const handleUpdateCar = (updatedCarData) => {
+        updateCarData({ variables: updatedCarData })
+    }
+    const handleSaveUser = (newUserData) => {
+        saveUserData({ variables: newUserData })
+        setUserForm(defaultUserForm)
+    }
+    const handleSaveCar = (newCarData) => {
+        saveCarData({ variables: newCarData })
+        setCarForm(defaultCarForm)
     }
 
-    const handleDeleteUser = () => {
-
+    const handleDeleteUser = (deletedUserData) => {
+        deleteUserData({ variables: { id: deletedUserData.id } })
+        setUserForm(defaultUserForm)
     }
-    const handleDeleteCar = () => {
-
+    const handleDeleteCar = (deletedCarData) => {
+        deleteCarData({ variables: { id: deletedCarData.id } })
+        setCarForm(defaultCarForm)
     }
         
     return (
@@ -53,16 +55,16 @@ const App = () => {
             <h1>Form</h1>
             <div>
                 <label>Busca: </label>
-                <input value={search} onChange={(e) => setSeach(e.target.value)} style={{marginBottom: '2em'}}/>
+                <input value={search} onChange={(e) => setSeach(e.target.value)}/>
             </div>
             <div className='content'>
                 <div style={{width: '50em'}} >
-                    <UserForm formData={userForm} onSave={handleSaveUser} onDelete={handleDeleteUser} onReset={()=>setUserForm(defaultUserForm)}/>
-                    <CarForm formData={carForm} onSave={handleSaveCar} onDelete={handleDeleteCar} onReset={()=>setCarForm(defaultCarForm)}/>
+                    <UserForm formData={userForm} onSave={handleSaveUser} onDelete={handleDeleteUser} onReset={()=>setUserForm(defaultUserForm)} onUpdate={handleUpdateUser}/>
+                    <CarForm formData={carForm} onSave={handleSaveCar} onDelete={handleDeleteCar} onReset={()=>setCarForm(defaultCarForm)} onUpdate={handleUpdateCar}/>
                     <div className='display-flex' style={{justifyContent: 'space-between'}}>
                         <div style={{width: '15em'}}>
                             <h2>Usuários</h2>
-                            {searchAllData?.data?.filterUsers?.map(user => 
+                            {searchAllDataResponse?.data?.filterUsers?.map(user => 
                                 <div className='item' key={user.id} onClick={() => setUserForm(user)}>
                                     <div>Nome: {user.name}</div>
                                     <div>Idade: {user.age}</div>
@@ -72,7 +74,7 @@ const App = () => {
                         </div>
                         <div style={{width: '15em'}}>
                             <h2>Carros</h2>
-                            {searchAllData?.data?.filterCars?.map(car => 
+                            {searchAllDataResponse?.data?.filterCars?.map(car => 
                                 <div className='item' key={car.id} onClick={() => setCarForm(car)}>
                                     <div>Nome: {car.name}</div>
                                     <div>Ano: {car.year}</div>

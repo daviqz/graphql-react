@@ -20,7 +20,6 @@ const GET_ALL_DATA = gql`
 //Exemplo get all
 const Example = () => {
     const { loading, error, data } = useQuery(GET_ALL_DATA)
-    console.log(data)
     return (
         <div>
             Example

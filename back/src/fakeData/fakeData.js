@@ -1,4 +1,4 @@
-const users = [
+let users = [
     {
         id: 1,
         name: 'Mamaco',
@@ -13,7 +13,7 @@ const users = [
     }
 ]
 
-const cars = [
+let cars = [
     {
         id: 1,
         name: 'Gol',
